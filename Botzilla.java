@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -9,88 +8,69 @@ import com.qualcomm.robotcore.hardware.Servo;
 @TeleOp(name = "BotzillaTeleOp", group = "Botzilla")
 public class BotzillaTeleOp extends LinearOpMode {
 
-    private DcMotor left_drive;
-    private DcMotor right_drive;
+    private DcMotor leftDrive;
+    private DcMotor rightDrive;
     private DcMotor intake;
     private DcMotor flywheel;
-    private Servo flywheel_arm;
+    private Servo flywheelArm;
 
-    // Servo positions — tune these for your robot
     private final double ARM_UP_POS = 0.8;
     private final double ARM_DOWN_POS = 0.2;
 
     @Override
     public void runOpMode() {
-        left_drive = hardwareMap.get(DcMotor.class, "left_drive");
-        right_drive = hardwareMap.get(DcMotor.class, "right_drive");
+        leftDrive = hardwareMap.get(DcMotor.class, "left_drive");
+        rightDrive = hardwareMap.get(DcMotor.class, "right_drive");
         intake = hardwareMap.get(DcMotor.class, "intake");
         flywheel = hardwareMap.get(DcMotor.class, "flywheel");
-        flywheel_arm = hardwareMap.get(Servo.class, "flywheel_arm");
+        flywheelArm = hardwareMap.get(Servo.class, "flywheel_arm");
 
-        left_drive.setDirection(DcMotor.Direction.REVERSE);
-        right_drive.setDirection(DcMotor.Direction.FORWARD);
+        leftDrive.setDirection(DcMotor.Direction.REVERSE);
+        rightDrive.setDirection(DcMotor.Direction.FORWARD);
 
-        flywheel_arm.setPosition(ARM_UP_POS);
+        flywheelArm.setPosition(ARM_UP_POS);
 
-        telemetry.addLine("Botzilla Auto Ready!");
+        telemetry.addLine("Botzilla TeleOp Ready!");
         telemetry.update();
 
         waitForStart();
 
-        if (opModeIsActive()) {
-            // -------------------- Autonomous Sequence --------------------
+        while (opModeIsActive()) {
+            // -------------------- Tank drive --------------------
+            double leftPower = -gamepad1.left_stick_y;
+            double rightPower = -gamepad1.right_stick_y;
 
-            // 1. Drive forward
-            drive(0.5, 1000);
+            leftDrive.setPower(leftPower);
+            rightDrive.setPower(rightPower);
 
-            // 2. Stop driving
-            stopDriving();
+            // -------------------- Intake control --------------------
+            if (gamepad1.right_trigger > 0.1) {
+                intake.setPower(gamepad1.right_trigger); // intake
+            } else if (gamepad1.left_trigger > 0.1) {
+                intake.setPower(-gamepad1.left_trigger); // outtake
+            } else {
+                intake.setPower(0.0);
+            }
 
-            // 3. Run intake briefly to load a ball
-            intake.setPower(1.0);
-            sleep(1000);
-            intake.setPower(0.0);
+            // -------------------- Flywheel control --------------------
+            if (gamepad1.b) {
+                flywheel.setPower(1.0); // spin up
+            } else if (gamepad1.a) {
+                flywheel.setPower(0.0); // stop
+            }
 
-            // 4. Spin up flywheel
-            flywheel.setPower(1.0);
-            telemetry.addLine("Spinning up flywheel...");
-            telemetry.update();
-            sleep(1500); // wait for spin-up
+            // -------------------- Flywheel arm control --------------------
+            if (gamepad1.x) {
+                flywheelArm.setPosition(ARM_DOWN_POS);
+            } else if (gamepad1.y) {
+                flywheelArm.setPosition(ARM_UP_POS);
+            }
 
-            // 5. Lower arm to shoot
-            flywheel_arm.setPosition(ARM_DOWN_POS);
-            telemetry.addLine("Launching ball!");
-            telemetry.update();
-            sleep(700);
-
-            // 6. Raise arm back up
-            flywheel_arm.setPosition(ARM_UP_POS);
-            sleep(300);
-
-            // 7. Turn off flywheel
-            flywheel.setPower(0.0);
-
-            // 8. Drive backward to finish
-            drive(-0.4, 800);
-
-            stopDriving();
-
-            telemetry.addLine("Auto Complete!");
+            telemetry.addData("Left Power", leftPower);
+            telemetry.addData("Right Power", rightPower);
+            telemetry.addData("Flywheel", flywheel.getPower());
+            telemetry.addData("Arm Pos", flywheelArm.getPosition());
             telemetry.update();
         }
-    }
-
-    // -------------------- Helper Methods --------------------
-
-    private void drive(double power, long durationMs) {
-        left_drive.setPower(power);
-        right_drive.setPower(power);
-        sleep(durationMs);
-        stopDriving();
-    }
-
-    private void stopDriving() {
-        left_drive.setPower(0.0);
-        right_drive.setPower(0.0);
     }
 }
